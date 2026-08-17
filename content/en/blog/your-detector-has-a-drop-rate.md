@@ -6,7 +6,7 @@ slug: your-detector-has-a-drop-rate
 tags: ["Falco", "Reliability", "Observability"]
 ---
 
-Falco tells you when something suspicious happens. It is worth asking the second question too: what
+Falco tells you when something suspicious happens. The second question matters just as much: what
 does it do when it cannot keep up?
 
 The answer is in the default configuration, and it is more permissive than most operators expect.
@@ -30,7 +30,7 @@ syscall_event_drops:
 ```
 
 Read that as an operational statement rather than a config block. Up to ten percent of syscall events
-in a given second can be dropped before Falco takes any action at all. Below that line, events are
+in one second can be dropped before Falco takes any action at all. Below that line, events are
 lost and nothing is said.
 
 The comment is explicit that this is a choice rather than a floor: set the threshold to zero if you
@@ -45,18 +45,18 @@ That is sensible design. A detector that spams its own alert channel during an e
 storm worse, and the incident where drops matter most is exactly the incident that generates them.
 
 It does mean the signal is deliberately coarse. One message every thirty seconds tells you drops are
-happening. It does not tell you how many, or for how long, or whether it is getting worse. For that
+happening. It does not tell you how many there were, or whether the rate is climbing. For that
 you need the metrics, not the alert.
 
-## Why this matters more for a detector than for a pipeline
+## Silence reads as safety
 
 Losing telemetry is annoying. Losing detection input is different in kind, because absence of an
 alert reads as absence of a problem.
 
-Every other part of a security stack fails loudly. A crashed agent pages someone. An expired
-certificate breaks a connection. A dropped syscall event produces silence that is indistinguishable
-from a quiet system, and it happens exactly when the machine is busiest, which is often when
-something interesting is going on.
+Every other part of a security stack fails where you can see it. A crashed agent pages someone. An
+expired certificate breaks a connection. A dropped syscall event just produces silence,
+indistinguishable from a quiet system, and it happens exactly when the machine is busiest, which is
+often when something interesting is going on.
 
 So the blind spot is not randomly distributed. It is correlated with load, and load correlates with
 the events you most wanted to see.
@@ -65,18 +65,18 @@ the events you most wanted to see.
 
 **Decide your threshold deliberately.** The default is a reasonable engineering compromise, not a
 recommendation for your environment. If you are running Falco to satisfy a control that assumes
-complete coverage, ten percent is not the number you want, and zero is available.
+complete coverage, ten percent is not your number. Zero is available.
 
 **Treat drops as a capacity signal, not just a Falco setting.** A sustained drop rate says the
-producer is outrunning the consumer. The fix is usually upstream: tune what you are asking Falco to
-evaluate, or give it more room, rather than raising the threshold until the message stops.
+producer is outrunning the consumer. The fix is usually upstream, tuning what you ask Falco to
+evaluate or giving it more headroom, rather than raising the threshold until the message stops.
 
 **Alert on the metrics, not the log line.** The rate-limited message is a notification, and Falco
 says as much in its own configuration: if you depend on the detailed drop-counter payload, use
 `metrics.output_rule` together with `metrics.kernel_event_counters_enabled`, which adds kernel-side
-event and drop counters to the metrics output. There is a per-CPU variant too, which is worth having
-because drops are rarely spread evenly across CPUs. A drop rate you can graph is a drop rate you can
-put an objective against.
+event and drop counters to the metrics output. There is a per-CPU variant too, useful because drops
+are rarely spread evenly across CPUs. A drop rate you can graph is a drop rate you can put an
+objective against.
 
 **Write the number down.** If someone asks what percentage of syscall events your detection stack
 observed last month, that should be answerable. On a default install it is not, because nothing below
